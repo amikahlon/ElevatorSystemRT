@@ -1,0 +1,56 @@
+# Build results
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# ASP.NET generated files
+*.db
+*.db-shm
+*.db-wal
+
+# EF Migrations snapshots
+**/Migrations/*Designer.cs
+**/Migrations/*.csproj
+
+# Dependency cache
+packages/
+.nuget/
+
+# Rider IDE
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# publish directory
+publish/
+
+# Test results
+TestResults/
+
+# Auto-generated secrets
+secrets.json
+
+# dotnet tools
+/.tools/
+
+# Node (if needed later)
+node_modules/
