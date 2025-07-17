@@ -13,13 +13,14 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Data;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Load environment variables from .env
 Env.Load();
 
-// Database Settings (EF only uses this for configuration section)
+// Database Settings 
 builder.Services.Configure<DatabaseSettings>(
     builder.Configuration.GetSection(DatabaseSettings.SectionName));
 
@@ -32,7 +33,6 @@ var jwtSettings = new JwtSettings
     Audience = Environment.GetEnvironmentVariable("JWT__Audience") ?? "ElevatorClients"
 };
 
-// Register JWT settings (for IOptions<JwtSettings> if needed)
 builder.Services.Configure<JwtSettings>(options =>
 {
     options.Secret = jwtSettings.Secret;
@@ -41,7 +41,6 @@ builder.Services.Configure<JwtSettings>(options =>
     options.Audience = jwtSettings.Audience;
 });
 
-// Configure JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -60,6 +59,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+
+                var result = JsonSerializer.Serialize(new
+                {
+                    message = "Authentication failed: Access token is missing or invalid.",
+                    statusCode = 401
+                });
+
+                await context.Response.WriteAsync(result);
+            }
         };
     });
 
@@ -82,7 +100,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 
-// Dapper (direct SQL)
+// Dapper 
 builder.Services.AddTransient<IDbConnection>(_ =>
     new SqlConnection(connectionString));
 
@@ -96,7 +114,6 @@ builder.Services.AddScoped<IUserService, UserService>();
 // Controllers
 builder.Services.AddControllers();
 
-// ✅ Swagger + JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -106,7 +123,6 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API for managing elevator system"
     });
 
-    // 🔐 Add JWT support to Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -171,7 +187,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Middlewares
+// Middleware 
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
