@@ -1,41 +1,190 @@
+using DotNetEnv;
+using ElevatorSystem.API.Configuration;
+using ElevatorSystem.API.Data;
+using ElevatorSystem.API.Extensions;
+using ElevatorSystem.API.Mappings;
+using ElevatorSystem.API.Middleware;
+using ElevatorSystem.API.Services;
+using ElevatorSystem.API.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Data;
+using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Load environment variables from .env
+Env.Load();
+
+// Database Settings (EF only uses this for configuration section)
+builder.Services.Configure<DatabaseSettings>(
+    builder.Configuration.GetSection(DatabaseSettings.SectionName));
+
+// Load JWT settings from environment
+var jwtSettings = new JwtSettings
+{
+    Secret = Environment.GetEnvironmentVariable("JWT__Secret") ?? throw new InvalidOperationException("JWT__Secret not found"),
+    ExpiryMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT__ExpiryMinutes") ?? "60"),
+    Issuer = Environment.GetEnvironmentVariable("JWT__Issuer") ?? "ElevatorSystem",
+    Audience = Environment.GetEnvironmentVariable("JWT__Audience") ?? "ElevatorClients"
+};
+
+// Register JWT settings (for IOptions<JwtSettings> if needed)
+builder.Services.Configure<JwtSettings>(options =>
+{
+    options.Secret = jwtSettings.Secret;
+    options.ExpiryMinutes = jwtSettings.ExpiryMinutes;
+    options.Issuer = jwtSettings.Issuer;
+    options.Audience = jwtSettings.Audience;
+});
+
+// Configure JWT authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddScoped<IJwtService, JwtService>();
+
+// DB Connection string
+var connectionString =
+    Environment.GetEnvironmentVariable("DB_CONNECTION") ??
+    builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Entity Framework Core
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlServer(connectionString);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
+
+// Dapper (direct SQL)
+builder.Services.AddTransient<IDbConnection>(_ =>
+    new SqlConnection(connectionString));
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+// Repositories & Services
+builder.Services.AddRepositories();
+builder.Services.AddScoped<IUserService, UserService>();
+
+// Controllers
+builder.Services.AddControllers();
+
+// ✅ Swagger + JWT
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Elevator System API",
+        Description = "API for managing elevator system"
+    });
+
+    // 🔐 Add JWT support to Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter: Bearer <your token>"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// Logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.SetMinimumLevel(LogLevel.Debug);
+}
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Global error handler
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// Swagger UI
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Elevator System API");
+        options.RoutePrefix = string.Empty;
+        options.DisplayRequestDuration();
+    });
 }
 
+// Middlewares
 app.UseHttpsRedirection();
+app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+// Routes
+app.MapControllers();
 
-app.MapGet("/weatherforecast", () =>
+// Health check
+app.MapGet("/health", () => Results.Ok(new
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    Status = "Healthy",
+    Timestamp = DateTime.UtcNow
+}));
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
