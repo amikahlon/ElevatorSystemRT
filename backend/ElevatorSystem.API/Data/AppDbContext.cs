@@ -12,11 +12,14 @@ namespace ElevatorSystem.API.Data
             : base(options) { }
 
         public DbSet<User> Users { get; set; } = null!;
+        public DbSet<Building> Buildings { get; set; } = null!;
+        public DbSet<Elevator> Elevators { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            // User entity configuration
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("Users");
@@ -43,6 +46,67 @@ namespace ElevatorSystem.API.Data
                 entity.Property(u => u.UpdatedAt)
                     .IsRequired(false);
             });
+
+            // Building entity configuration
+            modelBuilder.Entity<Building>(entity =>
+            {
+                entity.ToTable("Buildings");
+                entity.HasKey(b => b.Id);
+
+                entity.Property(b => b.Name)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
+                entity.Property(b => b.NumberOfFloors)
+                    .IsRequired();
+
+                entity.Property(b => b.UserId)
+                    .IsRequired();
+
+                entity.Property(b => b.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.Property(b => b.UpdatedAt)
+                    .IsRequired(false);
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(b => b.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Elevator entity configuration
+            modelBuilder.Entity<Elevator>(entity =>
+            {
+                entity.ToTable("Elevators");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.BuildingId)
+                    .IsRequired();
+
+                entity.Property(e => e.CurrentFloor)
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .IsRequired();
+
+                entity.Property(e => e.Direction)
+                    .IsRequired();
+
+                entity.Property(e => e.DoorStatus)
+                    .IsRequired();
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.Property(e => e.UpdatedAt)
+                    .IsRequired(false);
+
+                entity.HasOne<Building>()
+                      .WithMany()
+                      .HasForeignKey(e => e.BuildingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -57,12 +121,12 @@ namespace ElevatorSystem.API.Data
 
                 if (entry.State == EntityState.Added)
                 {
-                    entity.CreatedAt = DateTime.UtcNow;
+                    entity.CreatedAt = System.DateTime.UtcNow;
                     entity.UpdatedAt = null;
                 }
                 else if (entry.State == EntityState.Modified)
                 {
-                    entity.UpdatedAt = DateTime.UtcNow;
+                    entity.UpdatedAt = System.DateTime.UtcNow;
                     entry.Property(nameof(BaseEntity.CreatedAt)).IsModified = false;
                 }
             }
