@@ -94,6 +94,79 @@ namespace ElevatorSystem.API.Migrations
                     b.ToTable("Elevators", (string)null);
                 });
 
+            modelBuilder.Entity("ElevatorSystem.API.Models.Entities.ElevatorCall", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BuildingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CallTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DestinationFloor")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ElevatorId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsHandled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RequestedFloor")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuildingId");
+
+                    b.HasIndex("ElevatorId");
+
+                    b.ToTable("ElevatorCalls", (string)null);
+                });
+
+            modelBuilder.Entity("ElevatorSystem.API.Models.Entities.ElevatorCallAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignmentTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ElevatorCallId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ElevatorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ElevatorCallId");
+
+                    b.HasIndex("ElevatorId");
+
+                    b.ToTable("ElevatorCallAssignments", (string)null);
+                });
+
             modelBuilder.Entity("ElevatorSystem.API.Models.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -149,6 +222,43 @@ namespace ElevatorSystem.API.Migrations
                         .HasForeignKey("BuildingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ElevatorSystem.API.Models.Entities.ElevatorCall", b =>
+                {
+                    b.HasOne("ElevatorSystem.API.Models.Entities.Building", "Building")
+                        .WithMany()
+                        .HasForeignKey("BuildingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ElevatorSystem.API.Models.Entities.Elevator", "Elevator")
+                        .WithMany()
+                        .HasForeignKey("ElevatorId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Building");
+
+                    b.Navigation("Elevator");
+                });
+
+            modelBuilder.Entity("ElevatorSystem.API.Models.Entities.ElevatorCallAssignment", b =>
+                {
+                    b.HasOne("ElevatorSystem.API.Models.Entities.ElevatorCall", "ElevatorCall")
+                        .WithMany()
+                        .HasForeignKey("ElevatorCallId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ElevatorSystem.API.Models.Entities.Elevator", "Elevator")
+                        .WithMany()
+                        .HasForeignKey("ElevatorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Elevator");
+
+                    b.Navigation("ElevatorCall");
                 });
 #pragma warning restore 612, 618
         }

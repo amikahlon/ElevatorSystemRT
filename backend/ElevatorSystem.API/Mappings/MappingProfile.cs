@@ -20,6 +20,13 @@ namespace ElevatorSystem.API.Mappings
             CreateMap<CreateElevatorDto, Elevator>();
             CreateMap<Elevator, ElevatorDto>();
 
+            CreateMap<ElevatorCall, ElevatorCallDto>();
+            CreateMap<CreateElevatorCallDto, ElevatorCall>();
+
+            CreateMap<ElevatorCallAssignment, ElevatorCallAssignmentDto>();
+            CreateMap<CreateElevatorCallAssignmentDto, ElevatorCallAssignment>();
+
+
     
         }
     }

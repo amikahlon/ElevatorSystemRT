@@ -5,6 +5,7 @@ interface AuthState {
   email: string;
   isLoggedIn: boolean;
   selectedBuildingId: number;
+  selectedBuildingName: string;
 }
 
 const initialState: AuthState = {
@@ -12,6 +13,7 @@ const initialState: AuthState = {
   email: "",
   isLoggedIn: false,
   selectedBuildingId: 0,
+  selectedBuildingName: "",
 };
 
 const authSlice = createSlice({
@@ -23,15 +25,18 @@ const authSlice = createSlice({
       state.email = action.payload.email;
       state.isLoggedIn = true;
       state.selectedBuildingId = 0;
+      state.selectedBuildingName = "";
     },
     logout(state) {
       state.username = "";
       state.email = "";
       state.isLoggedIn = false;
       state.selectedBuildingId = 0;
+      state.selectedBuildingName = "";
     },
-    selectBuilding(state, action: PayloadAction<number>) {
-      state.selectedBuildingId = action.payload;
+    selectBuilding(state, action: PayloadAction<{ id: number; name: string }>) {
+      state.selectedBuildingId = action.payload.id;
+      state.selectedBuildingName = action.payload.name;
     },
   },
 });
