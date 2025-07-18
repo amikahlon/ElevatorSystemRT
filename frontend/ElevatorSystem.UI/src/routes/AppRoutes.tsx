@@ -1,5 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { HomePage, LoginPage, RegisterPage } from "../pages";
+import {
+  HomePage,
+  LoginPage,
+  RegisterPage,
+  AddBuilding,
+  BuildingOverviewPage,
+} from "../pages";
+
 import ProtectedRoute from "./ProtectedRoute";
 
 const AppRoutes = () => {
@@ -14,6 +21,22 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-building"
+          element={
+            <ProtectedRoute>
+              <AddBuilding />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/building/:id"
+          element={
+            <ProtectedRoute>
+              <BuildingOverviewPage />
             </ProtectedRoute>
           }
         />

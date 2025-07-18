@@ -76,29 +76,33 @@ namespace ElevatorSystem.API.Controllers
             return Ok(elevators);
         }
 
-        [HttpPut("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdateElevator(int id, [FromBody] CreateElevatorDto dto)
+        [HttpPut("{id}/current-floor")]
+        public async Task<IActionResult> UpdateCurrentFloor(int id, [FromBody] UpdateElevatorCurrentFloorDto dto)
         {
-            _logger.LogInformation("Update elevator request received for ID: {ElevatorId}", id);
-
-            if (!ModelState.IsValid)
-            {
-                _logger.LogWarning("Invalid UpdateElevatorDto model state");
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                await _elevatorService.UpdateElevatorAsync(id, dto);
-                return NoContent();
-            }
-            catch (BusinessException ex)
-            {
-                _logger.LogWarning("Update elevator failed: {Message}", ex.Message);
-                return BadRequest(ex.Message);
-            }
+            await _elevatorService.UpdateCurrentFloorAsync(id, dto.CurrentFloor);
+            return NoContent();
         }
+
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateElevatorStatusDto dto)
+        {
+            await _elevatorService.UpdateStatusAsync(id, dto.Status);
+            return NoContent();
+        }
+
+        [HttpPut("{id}/direction")]
+        public async Task<IActionResult> UpdateDirection(int id, [FromBody] UpdateElevatorDirectionDto dto)
+        {
+            await _elevatorService.UpdateDirectionAsync(id, dto.Direction);
+            return NoContent();
+        }
+
+        [HttpPut("{id}/door-status")]
+        public async Task<IActionResult> UpdateDoorStatus(int id, [FromBody] UpdateElevatorDoorStatusDto dto)
+        {
+            await _elevatorService.UpdateDoorStatusAsync(id, dto.DoorStatus);
+            return NoContent();
+        }
+
     }
 }

@@ -1,11 +1,11 @@
 using AutoMapper;
 using ElevatorSystem.API.Models.DTOs.Elevators;
 using ElevatorSystem.API.Models.Entities;
+using ElevatorSystem.API.Models.Enums;
 using ElevatorSystem.API.Repositories.Interfaces;
 using ElevatorSystem.API.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using ElevatorSystem.API.Common.Exceptions;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -39,17 +39,16 @@ namespace ElevatorSystem.API.Services
                 throw new BusinessException($"Building with ID {dto.BuildingId} does not exist.");
             }
 
-            if (dto.CurrentFloor < 0 || dto.CurrentFloor >= building.NumberOfFloors)
+            var elevator = new Elevator
             {
-                throw new BusinessException($"CurrentFloor {dto.CurrentFloor} is outside valid range (0 to {building.NumberOfFloors - 1}) for building ID {dto.BuildingId}.");
-            }
-
-            ValidateEnums(dto);
-
-            var elevator = _mapper.Map<Elevator>(dto);
+                BuildingId = dto.BuildingId,
+                CurrentFloor = 0,
+                Status = ElevatorStatus.Idle,
+                Direction = ElevatorDirection.None,
+                DoorStatus = DoorStatus.Closed
+            };
 
             var created = await _elevatorRepository.AddAsync(elevator);
-
             _logger.LogInformation("Elevator created with ID {ElevatorId} for Building ID {BuildingId}", created.Id, created.BuildingId);
 
             return _mapper.Map<ElevatorDto>(created);
@@ -67,47 +66,52 @@ namespace ElevatorSystem.API.Services
             return _mapper.Map<IEnumerable<ElevatorDto>>(elevators);
         }
 
-        public async Task UpdateElevatorAsync(int id, CreateElevatorDto dto)
+        public async Task UpdateBuildingAsync(int id, int buildingId)
         {
-            var existingElevator = await _elevatorRepository.GetByIdAsync(id);
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException("Elevator not found");
 
-            if (existingElevator == null)
-            {
-                _logger.LogWarning("Attempted to update non-existing elevator ID {ElevatorId}", id);
-                throw new BusinessException("Elevator not found");
-            }
+            var building = await _buildingRepository.GetByIdAsync(buildingId)
+                ?? throw new BusinessException("Building not found");
 
-            var building = await _buildingRepository.GetByIdAsync(dto.BuildingId);
-            if (building == null)
-            {
-                _logger.LogWarning("Attempted to update elevator for non-existing building ID {BuildingId}", dto.BuildingId);
-                throw new BusinessException($"Building with ID {dto.BuildingId} does not exist.");
-            }
-
-            if (dto.CurrentFloor < 0 || dto.CurrentFloor >= building.NumberOfFloors)
-            {
-                throw new BusinessException($"CurrentFloor {dto.CurrentFloor} is outside valid range (0 to {building.NumberOfFloors - 1}) for building ID {dto.BuildingId}.");
-            }
-
-            ValidateEnums(dto);
-
-            _mapper.Map(dto, existingElevator);
-
-            await _elevatorRepository.UpdateAsync(existingElevator);
-
-            _logger.LogInformation("Elevator ID {ElevatorId} updated successfully", id);
+            elevator.BuildingId = buildingId;
+            await _elevatorRepository.UpdateAsync(elevator);
         }
 
-        private void ValidateEnums(CreateElevatorDto dto)
+        public async Task UpdateCurrentFloorAsync(int id, int floor)
         {
-            if (!Enum.IsDefined(typeof(Models.Enums.ElevatorStatus), dto.Status))
-                throw new BusinessException("Invalid Elevator Status");
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException("Elevator not found");
 
-            if (!Enum.IsDefined(typeof(Models.Enums.ElevatorDirection), dto.Direction))
-                throw new BusinessException("Invalid Elevator Direction");
+            elevator.CurrentFloor = floor;
+            await _elevatorRepository.UpdateAsync(elevator);
+        }
 
-            if (!Enum.IsDefined(typeof(Models.Enums.DoorStatus), dto.DoorStatus))
-                throw new BusinessException("Invalid Door Status");
+        public async Task UpdateStatusAsync(int id, ElevatorStatus status)
+        {
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException("Elevator not found");
+
+            elevator.Status = status;
+            await _elevatorRepository.UpdateAsync(elevator);
+        }
+
+        public async Task UpdateDirectionAsync(int id, ElevatorDirection direction)
+        {
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException("Elevator not found");
+
+            elevator.Direction = direction;
+            await _elevatorRepository.UpdateAsync(elevator);
+        }
+
+        public async Task UpdateDoorStatusAsync(int id, DoorStatus doorStatus)
+        {
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException("Elevator not found");
+
+            elevator.DoorStatus = doorStatus;
+            await _elevatorRepository.UpdateAsync(elevator);
         }
     }
 }

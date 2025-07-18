@@ -15,6 +15,10 @@ namespace ElevatorSystem.API.Extensions
                 services.AddScoped<IBuildingService, BuildingService>();
                 services.AddScoped<IElevatorRepository, ElevatorRepository>();
                 services.AddScoped<IElevatorService, ElevatorService>();
+                services.AddScoped<IElevatorCallRepository, ElevatorCallRepository>();
+                services.AddScoped<IElevatorCallAssignmentRepository, ElevatorCallAssignmentRepository>();
+                services.AddScoped<IElevatorCallService, ElevatorCallService>();
+                services.AddScoped<IElevatorCallAssignmentService, ElevatorCallAssignmentService>();
 
 
             return services;

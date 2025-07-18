@@ -6,6 +6,7 @@ using ElevatorSystem.API.Mappings;
 using ElevatorSystem.API.Middleware;
 using ElevatorSystem.API.Services;
 using ElevatorSystem.API.Services.Interfaces;
+using ElevatorSystem.API.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -50,23 +51,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuer = true,
             ValidIssuer = jwtSettings.Issuer,
-
             ValidateAudience = true,
             ValidAudience = jwtSettings.Audience,
-
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
-
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
 
+        // Allow JWT over WebSocket (for SignalR)
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/elevator"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
             OnChallenge = async context =>
             {
                 context.HandleResponse();
-
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
 
@@ -114,6 +123,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 // Controllers
 builder.Services.AddControllers();
 
+// SignalR
+builder.Services.AddSignalR();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -149,14 +161,19 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// CORS
+// CORS (from ENV)
+var frontendUrls = Environment.GetEnvironmentVariable("FRONTEND_URLS")
+    ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? throw new InvalidOperationException("FRONTEND_URLS not set");
+
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(frontendUrls)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -187,13 +204,16 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Middleware 
-app.UseHttpsRedirection();
-app.UseCors();
+// Middleware
+// app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Routes
+// SignalR hub route
+app.MapHub<ElevatorHub>("/hubs/elevator");
+
+// Controllers
 app.MapControllers();
 
 // Health check

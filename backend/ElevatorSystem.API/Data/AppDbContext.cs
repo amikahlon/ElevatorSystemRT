@@ -14,6 +14,8 @@ namespace ElevatorSystem.API.Data
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Building> Buildings { get; set; } = null!;
         public DbSet<Elevator> Elevators { get; set; } = null!;
+        public DbSet<ElevatorCall> ElevatorCalls { get; set; } = null!;
+        public DbSet<ElevatorCallAssignment> ElevatorCallAssignments { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -106,6 +108,50 @@ namespace ElevatorSystem.API.Data
                       .WithMany()
                       .HasForeignKey(e => e.BuildingId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ElevatorCall entity
+            modelBuilder.Entity<ElevatorCall>(entity =>
+            {
+                entity.ToTable("ElevatorCalls");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.BuildingId).IsRequired();
+                entity.Property(e => e.ElevatorId).IsRequired(false);
+                entity.Property(e => e.RequestedFloor).IsRequired();
+                entity.Property(e => e.CallTime).IsRequired();
+                entity.Property(e => e.IsHandled).IsRequired();
+
+                entity.HasOne(e => e.Building)
+                    .WithMany()
+                    .HasForeignKey(e => e.BuildingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Elevator)
+                    .WithMany()
+                    .HasForeignKey(e => e.ElevatorId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // ElevatorCallAssignment entity
+            modelBuilder.Entity<ElevatorCallAssignment>(entity =>
+            {
+                entity.ToTable("ElevatorCallAssignments");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.ElevatorId).IsRequired();
+                entity.Property(e => e.ElevatorCallId).IsRequired();
+                entity.Property(e => e.AssignmentTime).IsRequired();
+
+                entity.HasOne(e => e.ElevatorCall)
+                    .WithMany()
+                    .HasForeignKey(e => e.ElevatorCallId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Elevator)
+                    .WithMany()
+                    .HasForeignKey(e => e.ElevatorId)
+                    .OnDelete(DeleteBehavior.NoAction);
             });
         }
 
