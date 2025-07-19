@@ -114,6 +114,9 @@ namespace ElevatorSystem.API.Migrations
                     b.Property<int?>("DestinationFloor")
                         .HasColumnType("int");
 
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ElevatorId")
                         .HasColumnType("int");
 

@@ -1,47 +1,23 @@
-using Dapper;
+using ElevatorSystem.API.Data;
 using ElevatorSystem.API.Models.Entities;
 using ElevatorSystem.API.Repositories.Interfaces;
-using System.Data;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore; 
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Repositories
 {
-    public class BuildingRepository : IBuildingRepository
+    public class BuildingRepository : GenericRepository<Building>, IBuildingRepository
     {
-        private readonly IDbConnection _connection;
-
-        public BuildingRepository(IDbConnection connection)
-        {
-            _connection = connection;
-        }
-
-        public async Task<Building> AddAsync(Building building)
-        {
-            var sql = @"
-                INSERT INTO Buildings (UserId, Name, NumberOfFloors, CreatedAt)
-                OUTPUT INSERTED.*
-                VALUES (@UserId, @Name, @NumberOfFloors, @CreatedAt)";
-            
-            return await _connection.QuerySingleAsync<Building>(sql, new
-            {
-                building.UserId,
-                building.Name,
-                building.NumberOfFloors,
-                CreatedAt = System.DateTime.UtcNow
-            });
-        }
-
-        public async Task<Building?> GetByIdAsync(int id)
-        {
-            var sql = "SELECT * FROM Buildings WHERE Id = @Id";
-            return await _connection.QueryFirstOrDefaultAsync<Building>(sql, new { Id = id });
-        }
+        public BuildingRepository(AppDbContext context) : base(context) { }
 
         public async Task<IEnumerable<Building>> GetByUserIdAsync(int userId)
         {
-            var sql = "SELECT * FROM Buildings WHERE UserId = @UserId";
-            return await _connection.QueryAsync<Building>(sql, new { UserId = userId });
+            return await _context.Buildings
+                                 .Where(b => b.UserId == userId)
+                                 .ToListAsync();
         }
+
     }
 }

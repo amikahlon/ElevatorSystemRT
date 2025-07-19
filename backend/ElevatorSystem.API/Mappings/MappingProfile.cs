@@ -10,24 +10,28 @@ namespace ElevatorSystem.API.Mappings
     {
         public MappingProfile()
         {
+            // User
             CreateMap<User, UserDto>();
             CreateMap<RegisterDto, User>()
-                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore());
+                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore()); //
 
+            // Building
             CreateMap<Building, BuildingDto>();
             CreateMap<CreateBuildingDto, Building>();
 
+            // Elevator
             CreateMap<CreateElevatorDto, Elevator>();
             CreateMap<Elevator, ElevatorDto>();
+            CreateMap<ElevatorDto, Elevator>();
 
+            // Elevator Call
             CreateMap<ElevatorCall, ElevatorCallDto>();
-            CreateMap<CreateElevatorCallDto, ElevatorCall>();
+            CreateMap<CreateElevatorCallDto, ElevatorCall>(); // Ensure this mapping handles `Direction` enum too.
+                                                                           // AutoMapper usually handles direct enum to enum mapping if names match.
 
+            // Elevator Call Assignment
             CreateMap<ElevatorCallAssignment, ElevatorCallAssignmentDto>();
             CreateMap<CreateElevatorCallAssignmentDto, ElevatorCallAssignment>();
-
-
-    
         }
     }
 }

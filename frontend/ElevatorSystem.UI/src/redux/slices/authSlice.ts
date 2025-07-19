@@ -6,6 +6,7 @@ interface AuthState {
   isLoggedIn: boolean;
   selectedBuildingId: number;
   selectedBuildingName: string;
+  currentFloor: number;
 }
 
 const initialState: AuthState = {
@@ -14,6 +15,7 @@ const initialState: AuthState = {
   isLoggedIn: false,
   selectedBuildingId: 0,
   selectedBuildingName: "",
+  currentFloor: 0,
 };
 
 const authSlice = createSlice({
@@ -26,6 +28,7 @@ const authSlice = createSlice({
       state.isLoggedIn = true;
       state.selectedBuildingId = 0;
       state.selectedBuildingName = "";
+      state.currentFloor = 0;
     },
     logout(state) {
       state.username = "";
@@ -33,13 +36,19 @@ const authSlice = createSlice({
       state.isLoggedIn = false;
       state.selectedBuildingId = 0;
       state.selectedBuildingName = "";
+      state.currentFloor = 0;
     },
     selectBuilding(state, action: PayloadAction<{ id: number; name: string }>) {
       state.selectedBuildingId = action.payload.id;
       state.selectedBuildingName = action.payload.name;
     },
+    setCurrentFloor(state, action: PayloadAction<number>) {
+      state.currentFloor = action.payload;
+    },
   },
 });
 
-export const { login, logout, selectBuilding } = authSlice.actions;
+export const { login, logout, selectBuilding, setCurrentFloor } =
+  authSlice.actions;
+
 export default authSlice.reducer;

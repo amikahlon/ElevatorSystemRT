@@ -2,8 +2,30 @@ namespace ElevatorSystem.API.Models.Enums
 {
     public enum ElevatorDirection
     {
-        None = 0,
-        Up = 1,
-        Down = 2
+        Up,
+        Down,
+        None
+    }
+
+    public enum ElevatorStatus
+    {
+        Idle,
+        MovingUp,
+        MovingDown,
+        OpeningDoors,
+        ClosingDoors
+    }
+
+    public enum ElevatorDoorStatus
+    {
+        Open,
+        Closed
+    }
+
+    public enum CallDirection
+    {
+        Up,
+        Down,
+        None 
     }
 }

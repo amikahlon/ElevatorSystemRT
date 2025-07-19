@@ -1,71 +1,35 @@
-using Dapper;
+using ElevatorSystem.API.Data;
 using ElevatorSystem.API.Models.Entities;
 using ElevatorSystem.API.Repositories.Interfaces;
-using System.Data;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Repositories
 {
-    public class ElevatorRepository : IElevatorRepository
+    public class ElevatorRepository : GenericRepository<Elevator>, IElevatorRepository
     {
-        private readonly IDbConnection _connection;
+        public ElevatorRepository(AppDbContext context) : base(context) { }
 
-        public ElevatorRepository(IDbConnection connection)
+        public async Task<IEnumerable<Elevator>> GetElevatorsByBuildingIdAsync(int buildingId)
         {
-            _connection = connection;
+            return await _context.Elevators 
+                                 .Where(e => e.BuildingId == buildingId)
+                                 .ToListAsync();
         }
 
-        public async Task<Elevator> AddAsync(Elevator elevator)
+        public async Task<IEnumerable<int>> GetAllBuildingIdsWithElevatorsAsync()
         {
-            var sql = @"
-                INSERT INTO Elevators (BuildingId, CurrentFloor, Status, Direction, DoorStatus, CreatedAt)
-                OUTPUT INSERTED.*
-                VALUES (@BuildingId, @CurrentFloor, @Status, @Direction, @DoorStatus, @CreatedAt)";
-
-            return await _connection.QuerySingleAsync<Elevator>(sql, new
-            {
-                elevator.BuildingId,
-                elevator.CurrentFloor,
-                Status = (int)elevator.Status,
-                Direction = (int)elevator.Direction,
-                DoorStatus = (int)elevator.DoorStatus,
-                CreatedAt = System.DateTime.UtcNow
-            });
+            return await _context.Elevators 
+                                 .Select(e => e.BuildingId)
+                                 .Distinct()
+                                 .ToListAsync();
         }
 
-        public async Task<Elevator?> GetByIdAsync(int id)
+        public IQueryable<Elevator> GetAllQueryable()
         {
-            var sql = "SELECT * FROM Elevators WHERE Id = @Id";
-            return await _connection.QueryFirstOrDefaultAsync<Elevator>(sql, new { Id = id });
-        }
-
-        public async Task<IEnumerable<Elevator>> GetByBuildingIdAsync(int buildingId)
-        {
-            var sql = "SELECT * FROM Elevators WHERE BuildingId = @BuildingId";
-            return await _connection.QueryAsync<Elevator>(sql, new { BuildingId = buildingId });
-        }
-
-        public async Task UpdateAsync(Elevator elevator)
-        {
-            var sql = @"
-                UPDATE Elevators
-                SET CurrentFloor = @CurrentFloor,
-                    Status = @Status,
-                    Direction = @Direction,
-                    DoorStatus = @DoorStatus,
-                    UpdatedAt = @UpdatedAt
-                WHERE Id = @Id";
-
-            await _connection.ExecuteAsync(sql, new
-            {
-                elevator.CurrentFloor,
-                Status = (int)elevator.Status,
-                Direction = (int)elevator.Direction,
-                DoorStatus = (int)elevator.DoorStatus,
-                UpdatedAt = System.DateTime.UtcNow,
-                elevator.Id
-            });
+            return _context.Elevators.AsQueryable(); 
         }
     }
 }

@@ -100,7 +100,7 @@ namespace ElevatorSystem.API.Controllers
         [HttpPut("{id}/door-status")]
         public async Task<IActionResult> UpdateDoorStatus(int id, [FromBody] UpdateElevatorDoorStatusDto dto)
         {
-            await _elevatorService.UpdateDoorStatusAsync(id, dto.DoorStatus);
+            await _elevatorService.UpdateDoorStatusAsync(id, (Models.Enums.ElevatorDoorStatus)dto.DoorStatus);
             return NoContent();
         }
 

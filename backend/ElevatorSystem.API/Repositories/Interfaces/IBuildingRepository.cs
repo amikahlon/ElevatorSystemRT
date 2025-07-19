@@ -1,13 +1,12 @@
 using ElevatorSystem.API.Models.Entities;
-using System.Threading.Tasks;
+using ElevatorSystem.API.Services.Interfaces;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Repositories.Interfaces
 {
-    public interface IBuildingRepository
+    public interface IBuildingRepository : IGenericRepository<Building>
     {
-        Task<Building> AddAsync(Building building);
-        Task<Building?> GetByIdAsync(int id);
         Task<IEnumerable<Building>> GetByUserIdAsync(int userId);
     }
 }

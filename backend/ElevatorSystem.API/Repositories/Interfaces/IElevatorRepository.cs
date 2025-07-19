@@ -4,11 +4,10 @@ using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Repositories.Interfaces
 {
-    public interface IElevatorRepository
+    public interface IElevatorRepository : IGenericRepository<Elevator>
     {
-        Task<Elevator> AddAsync(Elevator elevator);
-        Task<Elevator?> GetByIdAsync(int id);
-        Task<IEnumerable<Elevator>> GetByBuildingIdAsync(int buildingId);
-        Task UpdateAsync(Elevator elevator);
+        Task<IEnumerable<Elevator>> GetElevatorsByBuildingIdAsync(int buildingId);
+        Task<IEnumerable<int>> GetAllBuildingIdsWithElevatorsAsync();
+
     }
 }
