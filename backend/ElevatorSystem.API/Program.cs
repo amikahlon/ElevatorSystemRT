@@ -15,6 +15,8 @@ using Microsoft.OpenApi.Models;
 using System.Data;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using ElevatorSystem.API.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,12 +118,13 @@ builder.Services.AddTransient<IDbConnection>(_ =>
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-// Repositories & Services
-builder.Services.AddRepositories();
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddRepositories(); 
+builder.Services.AddScoped<IUserService, UserService>(); 
 
-// Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // SignalR
 builder.Services.AddSignalR();
@@ -182,6 +185,8 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// builder.Services.AddHostedService<ElevatorMonitorService>();
+
 if (builder.Environment.IsDevelopment())
 {
     builder.Logging.SetMinimumLevel(LogLevel.Debug);
@@ -223,4 +228,4 @@ app.MapGet("/health", () => Results.Ok(new
     Timestamp = DateTime.UtcNow
 }));
 
-app.Run();
+app.Run(); 

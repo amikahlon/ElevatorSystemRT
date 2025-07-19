@@ -1,52 +1,23 @@
-using Dapper;
+using ElevatorSystem.API.Data;
 using ElevatorSystem.API.Models.Entities;
 using ElevatorSystem.API.Repositories.Interfaces;
-using System.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Repositories
 {
-    public class ElevatorCallRepository : IElevatorCallRepository
+    public class ElevatorCallRepository : GenericRepository<ElevatorCall>, IElevatorCallRepository
     {
-        private readonly IDbConnection _connection;
+        public ElevatorCallRepository(AppDbContext context) : base(context) { }
 
-        public ElevatorCallRepository(IDbConnection connection)
+        public async Task<IEnumerable<ElevatorCall>> GetPendingCallsByBuildingIdAsync(int buildingId)
         {
-            _connection = connection;
-        }
-
-        public async Task<ElevatorCall> AddAsync(ElevatorCall call)
-        {
-            var sql = @"
-                INSERT INTO ElevatorCalls (BuildingId, ElevatorId, RequestedFloor, DestinationFloor, CallTime, IsHandled, CreatedAt)
-                OUTPUT INSERTED.*
-                VALUES (@BuildingId, @ElevatorId, @RequestedFloor, @DestinationFloor, @CallTime, @IsHandled, GETUTCDATE())";
-
-            return await _connection.QuerySingleAsync<ElevatorCall>(sql, call);
-        }
-
-        public async Task<IEnumerable<ElevatorCall>> GetPendingCallsAsync(int buildingId)
-        {
-            var sql = "SELECT * FROM ElevatorCalls WHERE BuildingId = @BuildingId AND IsHandled = 0";
-            return await _connection.QueryAsync<ElevatorCall>(sql, new { BuildingId = buildingId });
-        }
-
-        public async Task<ElevatorCall?> GetByIdAsync(int id)
-        {
-            var sql = "SELECT * FROM ElevatorCalls WHERE Id = @Id";
-            return await _connection.QueryFirstOrDefaultAsync<ElevatorCall>(sql, new { Id = id });
-        }
-
-        public async Task UpdateAsync(ElevatorCall call)
-        {
-            var sql = @"
-                UPDATE ElevatorCalls
-                SET ElevatorId = @ElevatorId,
-                    DestinationFloor = @DestinationFloor,
-                    IsHandled = @IsHandled,
-                    UpdatedAt = GETUTCDATE()
-                WHERE Id = @Id";
-
-            await _connection.ExecuteAsync(sql, call);
+            return await _context.ElevatorCalls 
+                                 .Where(c => c.BuildingId == buildingId && !c.IsHandled)
+                                 .OrderBy(c => c.CallTime)
+                                 .ToListAsync();
         }
     }
 }

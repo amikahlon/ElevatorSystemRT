@@ -6,6 +6,8 @@ namespace ElevatorSystem.API.Services.Interfaces
     {
         Task<ElevatorCallDto> CreateAsync(CreateElevatorCallDto dto);
         Task<IEnumerable<ElevatorCallDto>> GetPendingCallsAsync(int buildingId);
-        Task UpdateDestinationAsync(int callId, int destinationFloor);
+        Task UpdateDestinationAsync(int id, int destinationFloor);
+        Task UpdateCallHandledStatusAsync(int callId, bool isHandled); // New method
+        Task UpdateElevatorIdForCallAsync(int callId, int? elevatorId); // New method
     }
 }

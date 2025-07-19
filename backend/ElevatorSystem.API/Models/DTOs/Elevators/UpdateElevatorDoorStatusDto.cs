@@ -5,7 +5,7 @@ namespace ElevatorSystem.API.Models.DTOs.Elevators
 {
     public class UpdateElevatorDoorStatusDto
     {
-        [EnumDataType(typeof(DoorStatus))]
-        public DoorStatus DoorStatus { get; set; }
+        [EnumDataType(typeof(ElevatorDoorStatus))]
+        public ElevatorDoorStatus DoorStatus { get; set; }
     }
 }

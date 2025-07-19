@@ -1,8 +1,10 @@
 using Dapper;
 using ElevatorSystem.API.Models.Entities;
 using ElevatorSystem.API.Repositories.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace ElevatorSystem.API.Repositories
 {
@@ -50,6 +52,30 @@ namespace ElevatorSystem.API.Repositories
             return await _connection.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
         }
 
-        
+        public IQueryable<User> GetAll()
+        {
+            // Since Dapper doesn't return IQueryable directly, we'll fetch all and convert
+            var sql = "SELECT * FROM Users";
+            var result = _connection.Query<User>(sql).AsQueryable();
+            return result;
+        }
+
+        public async Task UpdateAsync(User entity)
+        {
+            var sql = @"
+                UPDATE Users 
+                SET Name = @Name, 
+                    Email = @Email, 
+                    PasswordHash = @PasswordHash
+                WHERE Id = @Id";
+
+            await _connection.ExecuteAsync(sql, entity);
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var sql = "DELETE FROM Users WHERE Id = @Id";
+            await _connection.ExecuteAsync(sql, new { Id = id });
+        }
     }
 }

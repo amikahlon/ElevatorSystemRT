@@ -1,4 +1,5 @@
 using ElevatorSystem.API.Models.Entities;
+using ElevatorSystem.API.Models.Enums; 
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
@@ -121,6 +122,11 @@ namespace ElevatorSystem.API.Data
                 entity.Property(e => e.RequestedFloor).IsRequired();
                 entity.Property(e => e.CallTime).IsRequired();
                 entity.Property(e => e.IsHandled).IsRequired();
+
+                
+                entity.Property(e => e.Direction)
+                      .HasConversion<int>() 
+                      .IsRequired();
 
                 entity.HasOne(e => e.Building)
                     .WithMany()

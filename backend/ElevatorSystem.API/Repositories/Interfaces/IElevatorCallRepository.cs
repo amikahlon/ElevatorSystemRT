@@ -1,12 +1,12 @@
 using ElevatorSystem.API.Models.Entities;
+using ElevatorSystem.API.Services.Interfaces;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Repositories.Interfaces
 {
-    public interface IElevatorCallRepository
+    public interface IElevatorCallRepository : IGenericRepository<ElevatorCall>
     {
-        Task<ElevatorCall> AddAsync(ElevatorCall call);
-        Task<IEnumerable<ElevatorCall>> GetPendingCallsAsync(int buildingId);
-        Task<ElevatorCall?> GetByIdAsync(int id);
-        Task UpdateAsync(ElevatorCall call);
+        Task<IEnumerable<ElevatorCall>> GetPendingCallsByBuildingIdAsync(int buildingId);
     }
 }
