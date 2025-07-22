@@ -15,4 +15,10 @@ export interface Elevator {
   doorStatus: number;
   createdAt: string;
   updatedAt?: string;
+
+  currentCallId: number | null;
+  isAwaitingDestinationSelection: boolean;
+  currentStopType?: string | null;
+  exitingCallId?: number | null;
+  awaitingDestinationCallId?: number | null;
 }

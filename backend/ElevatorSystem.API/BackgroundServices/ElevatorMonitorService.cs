@@ -1,154 +1,69 @@
-using AutoMapper;
+using ElevatorSystem.API.BackgroundServices.Helpers;
+using ElevatorSystem.API.BackgroundServices.Models;
+using ElevatorSystem.API.BackgroundServices.Services;
 using ElevatorSystem.API.Hubs;
-using ElevatorSystem.API.Models.DTOs.Elevators;
-using ElevatorSystem.API.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.BackgroundServices
 {
-    public class ElevatorMonitorService : BackgroundService
+
+    public class ElevatorMonitorService : BackgroundService, IElevatorMonitorService
     {
-        private readonly IServiceScopeFactory _scopeFactory;
-        private readonly IHubContext<ElevatorHub> _hubContext;
+        private readonly ElevatorMonitorConfiguration _configuration;
+        private readonly ElevatorSimulationOrchestrator _simulationOrchestrator;
+        private readonly DestinationSelectionHandler _destinationHandler;
         private readonly ILogger<ElevatorMonitorService> _logger;
-        private readonly TimeSpan _monitorInterval;
-        
-        private readonly ConcurrentDictionary<int, ElevatorDto> _lastKnownStates = new();
 
         public ElevatorMonitorService(
-            IServiceScopeFactory scopeFactory,
-            IHubContext<ElevatorHub> hubContext,
+            ElevatorSimulationOrchestrator simulationOrchestrator,
+            DestinationSelectionHandler destinationHandler,
             ILogger<ElevatorMonitorService> logger,
             IConfiguration configuration)
         {
-            _scopeFactory = scopeFactory;
-            _hubContext = hubContext;
             _logger = logger;
-            
-            var intervalSeconds = configuration.GetValue<int>("ElevatorSystem:MonitorIntervalSeconds", 2);
-            _monitorInterval = TimeSpan.FromSeconds(intervalSeconds);
+            _configuration = ElevatorMonitorConfiguration.FromConfiguration(configuration);
+            _simulationOrchestrator = simulationOrchestrator;
+            _destinationHandler = destinationHandler;
+
+            // Initialize the simulation constants with configuration values
+            StateManagement.ElevatorSimulationConstants.Initialize(_configuration);
+
+            _logger.LogInformation("ElevatorMonitorService initialized with {MonitorInterval} interval", 
+                _configuration.MonitorInterval);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Elevator Monitor Service started with interval {Interval}", _monitorInterval);
-
+            _logger.LogInformation("ElevatorMonitorService started");
+            
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await MonitorElevators();
+                    await _simulationOrchestrator.ExecuteSimulationStepAsync();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in elevator monitor loop");
+                    _logger.LogError(ex, "Error occurred during simulation step");
                 }
 
-                await Task.Delay(_monitorInterval, stoppingToken);
+                await Task.Delay(_configuration.MonitorInterval, stoppingToken);
             }
-
-            _logger.LogInformation("Elevator Monitor Service stopped");
+            
+            _logger.LogInformation("ElevatorMonitorService stopped");
         }
 
-        private async Task MonitorElevators()
+
+        public async Task HandleDestinationSelectionAsync(int callId, int destinationFloor)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var elevatorService = scope.ServiceProvider.GetRequiredService<IElevatorService>();
-
-            try
-            {
-                var buildingIds = await elevatorService.GetAllBuildingIdsWithElevatorsAsync();
-
-                foreach (var buildingId in buildingIds)
-                {
-                    await CheckBuildingElevators(elevatorService, buildingId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error monitoring elevators");
-            }
-        }
-
-        private async Task CheckBuildingElevators(IElevatorService elevatorService, int buildingId)
-        {
-            try
-            {
-                var elevators = await elevatorService.GetElevatorsByBuildingIdAsync(buildingId);
-
-                foreach (var elevator in elevators)
-                {
-                    await ProcessElevatorUpdate(elevator);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking elevators for building {BuildingId}", buildingId);
-            }
-        }
-
-        private async Task ProcessElevatorUpdate(ElevatorDto current)
-        {
-            if (_lastKnownStates.TryGetValue(current.Id, out var previous))
-            {
-                if (HasElevatorStateChanged(previous, current))
-                {
-                    await NotifyElevatorUpdate(current);
-                    _lastKnownStates[current.Id] = CloneElevatorDto(current);
-                }
-            }
-            else
-            {
-                _lastKnownStates[current.Id] = CloneElevatorDto(current);
-                await NotifyElevatorUpdate(current);
-            }
-        }
-
-        private static bool HasElevatorStateChanged(ElevatorDto previous, ElevatorDto current)
-        {
-            return previous.CurrentFloor != current.CurrentFloor ||
-                   previous.Status != current.Status ||
-                   previous.Direction != current.Direction ||
-                   previous.DoorStatus != current.DoorStatus;
-        }
-
-        private async Task NotifyElevatorUpdate(ElevatorDto elevator)
-        {
-            try
-            {
-                var groupName = $"Building_{elevator.BuildingId}";
-                await _hubContext.Clients.Group(groupName).SendAsync("ReceiveElevatorUpdate", elevator);
-
-                _logger.LogInformation(
-                    "Elevator update sent - ID: {ElevatorId}, Building: {BuildingId}, Floor: {Floor}, Status: {Status}", 
-                    elevator.Id, elevator.BuildingId, elevator.CurrentFloor, elevator.Status);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending elevator update for elevator {ElevatorId}", elevator.Id);
-            }
-        }
-
-        private static ElevatorDto CloneElevatorDto(ElevatorDto source)
-        {
-            return new ElevatorDto
-            {
-                Id = source.Id,
-                BuildingId = source.BuildingId,
-                CurrentFloor = source.CurrentFloor,
-                Status = source.Status,
-                Direction = source.Direction,
-                DoorStatus = source.DoorStatus,
-                CreatedAt = source.CreatedAt
-            };
+            await _destinationHandler.HandleDestinationSelectionAsync(callId, destinationFloor);
         }
     }
 }

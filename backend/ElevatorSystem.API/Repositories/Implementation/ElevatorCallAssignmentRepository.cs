@@ -1,67 +1,75 @@
-using Dapper;
+using ElevatorSystem.API.Data;
 using ElevatorSystem.API.Models.Entities;
 using ElevatorSystem.API.Repositories.Interfaces;
-using System.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ElevatorSystem.API.Repositories
+namespace ElevatorSystem.API.Repositories.Implementation
 {
     public class ElevatorCallAssignmentRepository : IElevatorCallAssignmentRepository
     {
-        private readonly IDbConnection _connection;
+        private readonly AppDbContext _context;
 
-        public ElevatorCallAssignmentRepository(IDbConnection connection)
+        public ElevatorCallAssignmentRepository(AppDbContext context)
         {
-            _connection = connection;
+            _context = context;
         }
 
         public async Task<ElevatorCallAssignment> AddAsync(ElevatorCallAssignment assignment)
         {
-            var sql = @"
-                INSERT INTO ElevatorCallAssignments (ElevatorCallId, ElevatorId, AssignmentTime, CreatedAt)
-                OUTPUT INSERTED.*
-                VALUES (@ElevatorCallId, @ElevatorId, @AssignmentTime, GETUTCDATE())";
-
-            return await _connection.QuerySingleAsync<ElevatorCallAssignment>(sql, assignment);
+            _context.ElevatorCallAssignments.Add(assignment);
+            await _context.SaveChangesAsync();
+            return assignment;
         }
 
         public async Task<IEnumerable<ElevatorCallAssignment>> GetByElevatorIdAsync(int elevatorId)
         {
-            var sql = "SELECT * FROM ElevatorCallAssignments WHERE ElevatorId = @ElevatorId";
-            return await _connection.QueryAsync<ElevatorCallAssignment>(sql, new { ElevatorId = elevatorId });
+            return await _context.ElevatorCallAssignments
+                .Where(a => a.ElevatorId == elevatorId)
+                .ToListAsync();
         }
 
         public async Task<ElevatorCallAssignment?> GetByIdAsync(int id)
         {
-            var sql = "SELECT * FROM ElevatorCallAssignments WHERE Id = @Id";
-            return await _connection.QueryFirstOrDefaultAsync<ElevatorCallAssignment>(sql, new { Id = id });
+            return await _context.ElevatorCallAssignments.FindAsync(id);
         }
 
         public IQueryable<ElevatorCallAssignment> GetAll()
         {
-            // Since Dapper doesn't return IQueryable directly, we'll fetch all and convert
-            var sql = "SELECT * FROM ElevatorCallAssignments";
-            var result = _connection.Query<ElevatorCallAssignment>(sql).AsQueryable();
-            return result;
+            return _context.ElevatorCallAssignments.AsQueryable();
         }
 
         public async Task UpdateAsync(ElevatorCallAssignment entity)
         {
-            var sql = @"
-                UPDATE ElevatorCallAssignments 
-                SET ElevatorCallId = @ElevatorCallId, 
-                    ElevatorId = @ElevatorId, 
-                    AssignmentTime = @AssignmentTime
-                WHERE Id = @Id";
-
-            await _connection.ExecuteAsync(sql, entity);
+            _context.ElevatorCallAssignments.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
         {
-            var sql = "DELETE FROM ElevatorCallAssignments WHERE Id = @Id";
-            await _connection.ExecuteAsync(sql, new { Id = id });
+            var assignment = await _context.ElevatorCallAssignments.FindAsync(id);
+            if (assignment != null)
+            {
+                _context.ElevatorCallAssignments.Remove(assignment);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<IEnumerable<ElevatorCallAssignment>> GetActiveAssignmentsAsync()
+        {
+            return await _context.ElevatorCallAssignments
+                .Include(a => a.ElevatorCall)
+                .Where(a => !a.ElevatorCall.IsHandled)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ElevatorCallAssignment>> GetByCallIdAsync(int callId)
+        {
+            return await _context.ElevatorCallAssignments
+                .Where(a => a.ElevatorCallId == callId)
+                .ToListAsync();
         }
     }
 }

@@ -7,6 +7,7 @@ export const setUnauthorizedHandler = (handler: () => void) => {
   onUnauthorized = handler;
 };
 
+console.log(import.meta.env.VITE_API_URL, "API URL from env");
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {

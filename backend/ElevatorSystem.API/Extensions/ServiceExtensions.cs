@@ -1,4 +1,6 @@
+using ElevatorSystem.API.BackgroundServices.Extensions;
 using ElevatorSystem.API.Repositories;
+using ElevatorSystem.API.Repositories.Implementation;
 using ElevatorSystem.API.Repositories.Interfaces;
 using ElevatorSystem.API.Services;
 using ElevatorSystem.API.Services.Interfaces;
@@ -22,6 +24,9 @@ namespace ElevatorSystem.API.Extensions
             services.AddScoped<IElevatorService, ElevatorService>();
             services.AddScoped<IElevatorCallService, ElevatorCallService>();
             services.AddScoped<IElevatorCallAssignmentService, ElevatorCallAssignmentService>();
+
+            // Register elevator monitoring services
+            services.AddElevatorMonitoringServices();
 
             return services;
         }

@@ -1,5 +1,6 @@
 using ElevatorSystem.API.Models.DTOs.Elevators;
 using ElevatorSystem.API.Services.Interfaces;
+using ElevatorSystem.API.BackgroundServices.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -13,15 +14,18 @@ namespace ElevatorSystem.API.Controllers
     {
         private readonly IElevatorCallService _callService;
         private readonly IElevatorCallAssignmentService _assignmentService;
+        private readonly IElevatorMonitorService _monitorService;
         private readonly ILogger<ElevatorCallsController> _logger;
 
         public ElevatorCallsController(
             IElevatorCallService callService,
             IElevatorCallAssignmentService assignmentService,
+            IElevatorMonitorService monitorService,
             ILogger<ElevatorCallsController> logger)
         {
             _callService = callService;
             _assignmentService = assignmentService;
+            _monitorService = monitorService;
             _logger = logger;
         }
 
@@ -62,6 +66,25 @@ namespace ElevatorSystem.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogWarning("Failed to update call {CallId}: {Message}", id, ex.Message);
+                return NotFound();
+            }
+        }
+
+        [HttpPost("{callId}/destination")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SelectDestination(int callId, [FromBody] int destinationFloor)
+        {
+            _logger.LogInformation("Selecting destination floor {DestinationFloor} for call {CallId}", destinationFloor, callId);
+
+            try
+            {
+                await _monitorService.HandleDestinationSelectionAsync(callId, destinationFloor);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while selecting destination for call {CallId}", callId);
                 return NotFound();
             }
         }
