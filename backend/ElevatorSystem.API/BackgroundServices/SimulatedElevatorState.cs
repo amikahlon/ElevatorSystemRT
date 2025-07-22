@@ -1,34 +1,56 @@
 using ElevatorSystem.API.Models.DTOs.Elevators;
 using ElevatorSystem.API.Models.Enums;
-using System.Collections.Concurrent;
+using ElevatorSystem.API.BackgroundServices.StateManagement;
 
 namespace ElevatorSystem.API.BackgroundServices
 {
+
     public class SimulatedElevatorState
     {
-        public ElevatorDto CurrentState { get; set; }
-        public ConcurrentQueue<int> TargetFloors { get; set; } = new();
-        public ConcurrentQueue<ElevatorCallDto> PendingCalls { get; set; } = new();
+        private readonly RefactoredSimulatedElevatorState _refactoredState;
+
+        public ElevatorDto CurrentState => _refactoredState.CurrentState;
+        public bool IsAwaitingDestinationSelection => _refactoredState.IsAwaitingDestinationSelection;
+        public int? CurrentCallId => _refactoredState.CurrentCallId;
 
         public SimulatedElevatorState(ElevatorDto initialState)
         {
-            CurrentState = initialState;
+            _refactoredState = new RefactoredSimulatedElevatorState(initialState);
         }
 
-        public void AddCall(ElevatorCallDto call)
+        public bool IsIdle()
         {
-            if (!PendingCalls.Contains(call))
-            {
-                PendingCalls.Enqueue(call);
-            }
+            return _refactoredState.IsIdle();
         }
 
-        public void AddTargetFloor(int floor)
+        public bool HasTargets()
         {
-            if (!TargetFloors.Contains(floor))
-            {
-                TargetFloors.Enqueue(floor);
-            }
+            return _refactoredState.HasTargets();
+        }
+
+        public void AddTargetFloor(int floor, int? callId = null)
+        {
+            _refactoredState.AddTargetFloor(floor, callId);
+        }
+
+        public void AddDestinationFloor(int destinationFloor, int callId)
+        {
+            _refactoredState.AddDestinationFloor(destinationFloor, callId);
+        }
+
+        public bool Step()
+        {
+            return _refactoredState.Step();
+        }
+
+        public ElevatorDto GetStateForBroadcast()
+        {
+            return _refactoredState.GetStateForBroadcast();
+        }
+
+        public bool IsMovingTowards(int floor)
+        {
+            return _refactoredState.IsMovingTowards(floor);
         }
     }
 }

@@ -10,6 +10,7 @@ import {
   REGISTER,
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
+import { StorageUtil } from "../utils/storage.util";
 
 import authReducer from "./slices/authSlice";
 
@@ -18,7 +19,7 @@ const rootReducer = combineReducers({
 });
 
 const persistConfig = {
-  key: "root",
+  key: StorageUtil.getReduxUniqueKey("root"),
   storage,
   whitelist: ["auth"],
 };

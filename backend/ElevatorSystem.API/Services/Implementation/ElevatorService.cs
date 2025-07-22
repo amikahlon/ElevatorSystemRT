@@ -1,15 +1,12 @@
 using AutoMapper;
 using ElevatorSystem.API.Common.Exceptions;
-using ElevatorSystem.API.Data;
 using ElevatorSystem.API.Models.DTOs.Elevators;
 using ElevatorSystem.API.Models.Entities;
 using ElevatorSystem.API.Models.Enums;
 using ElevatorSystem.API.Repositories.Interfaces;
 using ElevatorSystem.API.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace ElevatorSystem.API.Services
@@ -17,7 +14,7 @@ namespace ElevatorSystem.API.Services
     public class ElevatorService : IElevatorService
     {
         private readonly IElevatorRepository _elevatorRepository;
-        private readonly IBuildingRepository _buildingRepository; 
+        private readonly IBuildingRepository _buildingRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<ElevatorService> _logger;
 
@@ -35,7 +32,6 @@ namespace ElevatorSystem.API.Services
 
         public async Task<ElevatorDto> AddElevatorAsync(CreateElevatorDto dto)
         {
-            // Validate BuildingId
             var building = await _buildingRepository.GetByIdAsync(dto.BuildingId);
             if (building == null)
             {
@@ -44,11 +40,11 @@ namespace ElevatorSystem.API.Services
             }
 
             var elevator = _mapper.Map<Elevator>(dto);
-            elevator.CurrentFloor = 1; 
+            elevator.CurrentFloor = 1;
             elevator.Status = ElevatorStatus.Idle;
             elevator.Direction = ElevatorDirection.None;
-            elevator.DoorStatus = (DoorStatus)ElevatorDoorStatus.Closed;
-            
+            elevator.DoorStatus = DoorStatus.Closed;
+
             elevator = await _elevatorRepository.AddAsync(elevator);
             _logger.LogInformation("Elevator {ElevatorId} created for building {BuildingId}.", elevator.Id, elevator.BuildingId);
             return _mapper.Map<ElevatorDto>(elevator);
@@ -73,65 +69,64 @@ namespace ElevatorSystem.API.Services
 
         public async Task UpdateCurrentFloorAsync(int id, int currentFloor)
         {
-            var elevator = await _elevatorRepository.GetByIdAsync(id);
-            if (elevator == null)
-            {
-                throw new BusinessException($"Elevator with ID {id} not found.");
-            }
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException($"Elevator with ID {id} not found.");
+
             elevator.CurrentFloor = currentFloor;
             await _elevatorRepository.UpdateAsync(elevator);
         }
 
         public async Task UpdateStatusAsync(int id, ElevatorStatus status)
         {
-            var elevator = await _elevatorRepository.GetByIdAsync(id);
-            if (elevator == null)
-            {
-                throw new BusinessException($"Elevator with ID {id} not found.");
-            }
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException($"Elevator with ID {id} not found.");
+
             elevator.Status = status;
             await _elevatorRepository.UpdateAsync(elevator);
         }
 
         public async Task UpdateDirectionAsync(int id, ElevatorDirection direction)
         {
-            var elevator = await _elevatorRepository.GetByIdAsync(id);
-            if (elevator == null)
-            {
-                throw new BusinessException($"Elevator with ID {id} not found.");
-            }
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException($"Elevator with ID {id} not found.");
+
             elevator.Direction = direction;
             await _elevatorRepository.UpdateAsync(elevator);
         }
 
-        public async Task UpdateDoorStatusAsync(int id, ElevatorDoorStatus doorStatus)
+        public async Task UpdateDoorStatusAsync(int id, DoorStatus doorStatus)
         {
-            var elevator = await _elevatorRepository.GetByIdAsync(id);
-            if (elevator == null)
-            {
-                throw new BusinessException($"Elevator with ID {id} not found.");
-            }
-            elevator.DoorStatus = (DoorStatus)doorStatus;
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException($"Elevator with ID {id} not found.");
+
+            elevator.DoorStatus = doorStatus;
             await _elevatorRepository.UpdateAsync(elevator);
         }
 
-        public async Task UpdateElevatorStateAsync(int id, int currentFloor, ElevatorStatus status, ElevatorDirection direction, ElevatorDoorStatus doorStatus)
+        public async Task UpdateElevatorStateAsync(int id, int currentFloor, ElevatorStatus status, ElevatorDirection direction, DoorStatus doorStatus)
         {
-            var elevator = await _elevatorRepository.GetByIdAsync(id);
-            if (elevator == null)
-            {
-                _logger.LogWarning("Elevator with ID {ElevatorId} not found for state update.", id);
-                throw new BusinessException($"Elevator with ID {id} not found.");
-            }
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException($"Elevator with ID {id} not found.");
 
             elevator.CurrentFloor = currentFloor;
             elevator.Status = status;
             elevator.Direction = direction;
-            elevator.DoorStatus = (DoorStatus)doorStatus;
+            elevator.DoorStatus = doorStatus;
 
             await _elevatorRepository.UpdateAsync(elevator);
-            _logger.LogDebug("Elevator {ElevatorId} state updated. Floor: {Floor}, Status: {Status}, Direction: {Direction}, Door: {Door}",
-                id, currentFloor, status, direction, doorStatus);
+        }
+
+        public async Task UpdateStateAsync(int id, UpdateElevatorStateDto dto)
+        {
+            var elevator = await _elevatorRepository.GetByIdAsync(id)
+                ?? throw new BusinessException($"Elevator with ID {id} not found.");
+
+            elevator.CurrentFloor = dto.CurrentFloor;
+            elevator.Status = dto.Status;
+            elevator.Direction = dto.Direction;
+            elevator.DoorStatus = dto.DoorStatus;
+
+            await _elevatorRepository.UpdateAsync(elevator);
         }
     }
 }

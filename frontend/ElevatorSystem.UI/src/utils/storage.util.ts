@@ -2,6 +2,22 @@ import { AUTH_CONSTANTS } from "../constants/auth.constants";
 import type { User } from "../types";
 
 export class StorageUtil {
+  // Generate unique session ID for each tab/window - persistent across page refreshes
+  private static sessionId: string = (() => {
+    let id = sessionStorage.getItem("tabSessionId");
+    if (!id) {
+      id = Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem("tabSessionId", id);
+    }
+    return id;
+  })();
+
+  // Get unique key for Redux state (with sessionId for tab isolation)
+  static getReduxUniqueKey(key: string): string {
+    return `${key}_${this.sessionId}`;
+  }
+
+  // Regular localStorage methods (for auth data - shared across tabs)
   static setLocalStorage<T>(key: string, value: T): void {
     try {
       localStorage.setItem(key, JSON.stringify(value));

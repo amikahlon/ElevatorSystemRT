@@ -6,19 +6,33 @@ import { BuildingService } from "../../../services";
 const AddBuilding = () => {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [floors, setFloors] = useState(1);
+  const [floors, setFloors] = useState(5);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (floors < 5) {
+      alert("Building must have at least 5 floors.");
+      return;
+    }
+
+    if (floors > 100) {
+      alert("Building cannot have more than 100 floors.");
+      return;
+    }
+
     try {
-      await BuildingService.createBuilding({
+      const newBuilding = await BuildingService.createBuilding({
         name,
         numberOfFloors: floors,
       });
+
+      await BuildingService.createElevator(newBuilding.id);
+
       navigate("/");
     } catch (error) {
-      console.error("Failed to create building:", error);
-      alert("Something went wrong while creating the building.");
+      console.error("Failed to create building or elevator:", error);
+      alert("Something went wrong while creating the building or elevator.");
     }
   };
 
@@ -43,14 +57,15 @@ const AddBuilding = () => {
 
         <div>
           <label className="block text-gray-700 font-semibold mb-1">
-            Number of Floors
+            Number of Floors (5-100)
           </label>
           <input
             type="number"
             value={floors}
             onChange={(e) => setFloors(Number(e.target.value))}
             className="w-full border border-gray-300 rounded-lg p-2"
-            min={1}
+            min={5}
+            max={100}
             required
           />
         </div>

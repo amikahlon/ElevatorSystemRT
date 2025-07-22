@@ -98,5 +98,17 @@ namespace ElevatorSystem.API.Services
             await _callRepository.UpdateAsync(call);
             _logger.LogInformation("Elevator call {CallId} assigned to elevator {ElevatorId}.", callId, elevatorId);
         }
+
+
+        public async Task MarkCallAsHandledAsync(int callId)
+        {
+            var call = await _callRepository.GetByIdAsync(callId)
+                ?? throw new BusinessException($"Call with ID {callId} not found.");
+
+            call.IsHandled = true;
+            await _callRepository.UpdateAsync(call);
+        }
+
+        
     }
 }

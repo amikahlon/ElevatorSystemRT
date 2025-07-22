@@ -22,9 +22,15 @@ const HomePage = () => {
     navigate("/login");
   };
 
-  const handleSelect = (buildingId: number, buildingName: string) => {
-    dispatch(selectBuilding({ id: buildingId, name: buildingName }));
-    navigate(`/building/${buildingId}`);
+  const handleSelect = (building: Building) => {
+    dispatch(
+      selectBuilding({
+        id: building.id,
+        name: building.name,
+        numberOfFloors: building.numberOfFloors,
+      })
+    );
+    navigate(`/building/${building.id}`);
   };
 
   const handleAddBuilding = () => {
@@ -54,7 +60,7 @@ const HomePage = () => {
             {buildings.map((b) => (
               <div
                 key={b.id}
-                onClick={() => handleSelect(b.id, b.name)}
+                onClick={() => handleSelect(b)}
                 className="cursor-pointer p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl shadow-md hover:shadow-lg transition hover:scale-105"
               >
                 <div className="flex flex-col items-center justify-center space-y-4">

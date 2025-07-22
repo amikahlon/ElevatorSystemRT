@@ -6,6 +6,7 @@ namespace ElevatorSystem.API.Models.DTOs.Elevators
     {
         public int BuildingId { get; set; }
         public int RequestedFloor { get; set; }
+        public int? DestinationFloor { get; set; } 
         public CallDirection Direction { get; set; } 
     }
 }

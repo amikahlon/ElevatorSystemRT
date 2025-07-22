@@ -1,5 +1,6 @@
 using ElevatorSystem.API.Common.Exceptions;
 using ElevatorSystem.API.Models.DTOs.Elevators;
+using ElevatorSystem.API.Models.Enums;
 using ElevatorSystem.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -100,9 +101,24 @@ namespace ElevatorSystem.API.Controllers
         [HttpPut("{id}/door-status")]
         public async Task<IActionResult> UpdateDoorStatus(int id, [FromBody] UpdateElevatorDoorStatusDto dto)
         {
-            await _elevatorService.UpdateDoorStatusAsync(id, (Models.Enums.ElevatorDoorStatus)dto.DoorStatus);
+            await _elevatorService.UpdateDoorStatusAsync(id, dto.DoorStatus);
             return NoContent();
         }
+
+        [HttpPut("{id}/state")]
+        public async Task<IActionResult> UpdateElevatorState(int id, [FromBody] UpdateElevatorStateDto dto)
+        {
+            await _elevatorService.UpdateElevatorStateAsync(
+                id,
+                dto.CurrentFloor,
+                dto.Status,
+                dto.Direction,
+                dto.DoorStatus  
+            );
+
+            return NoContent();
+        }
+
 
     }
 }

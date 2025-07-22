@@ -185,7 +185,8 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// builder.Services.AddHostedService<ElevatorMonitorService>();
+builder.Services.AddSingleton<ElevatorMonitorService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<ElevatorMonitorService>());
 
 if (builder.Environment.IsDevelopment())
 {

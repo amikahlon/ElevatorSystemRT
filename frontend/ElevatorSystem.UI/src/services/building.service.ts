@@ -21,4 +21,9 @@ export class BuildingService {
     const res = await api.post<Building>("/api/buildings", data);
     return res.data;
   }
+
+  static async createElevator(buildingId: number): Promise<Elevator> {
+    const res = await api.post<Elevator>("/api/elevators", { buildingId });
+    return res.data;
+  }
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using ElevatorSystem.API.BackgroundServices.Services;
 
 namespace ElevatorSystem.API.Hubs
 {
@@ -12,11 +13,16 @@ namespace ElevatorSystem.API.Hubs
     {
         private readonly IElevatorService _elevatorService;
         private readonly ILogger<ElevatorHub> _logger;
+        private readonly IElevatorMonitorService _elevatorMonitorService;
 
-        public ElevatorHub(IElevatorService elevatorService, ILogger<ElevatorHub> logger)
+        public ElevatorHub(
+            IElevatorService elevatorService, 
+            ILogger<ElevatorHub> logger,
+            IElevatorMonitorService elevatorMonitorService)
         {
             _elevatorService = elevatorService;
             _logger = logger;
+            _elevatorMonitorService = elevatorMonitorService;
         }
 
         public async Task JoinBuildingGroup(int buildingId)
@@ -71,6 +77,23 @@ namespace ElevatorSystem.API.Hubs
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error leaving building group {BuildingId} for client {ConnectionId}", buildingId, Context.ConnectionId);
+            }
+        }
+
+        public async Task SelectDestinationFloor(int callId, int destinationFloor)
+        {
+            try
+            {
+                _logger.LogInformation("Client {ConnectionId} selected destination floor {DestinationFloor} for call {CallId}",
+                    Context.ConnectionId, destinationFloor, callId);
+                
+                await _elevatorMonitorService.HandleDestinationSelectionAsync(callId, destinationFloor);
+                await Clients.Caller.SendAsync("DestinationSelected", callId, destinationFloor);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing destination selection for call {CallId}", callId);
+                await Clients.Caller.SendAsync("Error", "Failed to process destination selection");
             }
         }
 

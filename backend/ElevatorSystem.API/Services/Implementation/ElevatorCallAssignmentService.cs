@@ -23,6 +23,20 @@ namespace ElevatorSystem.API.Services
             _logger = logger;
         }
 
+        public async Task<IEnumerable<ElevatorCallAssignmentDto>> GetActiveAssignmentsAsync()
+        {
+            try
+            {
+                var activeAssignments = await _assignmentRepository.GetActiveAssignmentsAsync();
+                return _mapper.Map<IEnumerable<ElevatorCallAssignmentDto>>(activeAssignments);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active elevator call assignments");
+                throw;
+            }
+        }
+
         public async Task<ElevatorCallAssignmentDto> AssignCallAsync(CreateElevatorCallAssignmentDto dto)
         {
             var assignment = _mapper.Map<ElevatorCallAssignment>(dto);
